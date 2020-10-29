@@ -51,6 +51,7 @@ message Container {
 	repeated Port ports = 11;
 	string platform = 13;
 	HostConfig host_config = 15;
+	Healthcheck healthcheck = 16;
 }
 
 message HostConfig {
@@ -59,6 +60,12 @@ message HostConfig {
 	uint64 cpu_reservation = 3;
 	uint64 cpu_limit = 4;
 	string restart_policy = 5;
+}
+
+message Healthcheck {
+	bool disable = 1;
+	repeated string test = 2;
+	int64 interval = 3;
 }
 
 message InspectRequest {
@@ -110,7 +117,8 @@ message RunRequest {
 	uint64 cpu_limit = 7;
 	string restart_policy_condition = 8;
 	repeated string command = 9;
-	repeated string environment = 10; 
+	repeated string environment = 10;
+	Healthcheck  healthcheck = 11;
 }
 
 message RunResponse {

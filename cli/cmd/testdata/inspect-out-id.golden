@@ -14,5 +14,10 @@
         "MemoryReservation": 0,
         "MemoryLimit": 0
     },
-    "Platform": "Linux"
+    "Platform": "Linux",
+    "Healthcheck": {
+        "Disable": false,
+        "Test": null,
+        "Interval": "0s"
+    }
 }

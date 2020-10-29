@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/compose-spec/compose-go/types"
+
 	"github.com/docker/compose-cli/api/containers"
 	"github.com/docker/compose-cli/formatter"
 	containersv1 "github.com/docker/compose-cli/protos/containers/v1"
@@ -140,6 +142,11 @@ func toGrpcContainer(c containers.Container) *containersv1.Container {
 			CpuLimit:          uint64(c.HostConfig.CPULimit),
 			RestartPolicy:     c.HostConfig.RestartPolicy,
 		},
+		Healthcheck: &containersv1.Healthcheck{
+			Disable:  c.Healthcheck.Disable,
+			Test:     c.Healthcheck.Test,
+			Interval: int64(c.Healthcheck.Interval),
+		},
 	}
 }
 
@@ -165,5 +172,10 @@ func grpcContainerToContainerConfig(request *containersv1.RunRequest) containers
 		CPULimit:               float64(request.GetCpuLimit()),
 		RestartPolicyCondition: request.RestartPolicyCondition,
 		Environment:            request.Environment,
+		Healthcheck: containers.Healthcheck{
+			Disable:  request.GetHealthcheck().GetDisable(),
+			Test:     request.GetHealthcheck().GetTest(),
+			Interval: types.Duration(request.GetHealthcheck().GetInterval()),
+		},
 	}
 }

@@ -20,6 +20,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/containerinstance/mgmt/2018-10-01/containerinstance"
 	"github.com/Azure/go-autorest/autorest/to"
@@ -88,6 +89,16 @@ func TestContainerGroupToContainer(t *testing.T) {
 					MemoryInGB: to.Float64Ptr(0.1),
 				},
 			},
+			ReadinessProbe: &containerinstance.ContainerProbe{
+				Exec: &containerinstance.ContainerExec{
+					Command: to.StringSlicePtr([]string{
+						"my",
+						"command",
+						"--option",
+					}),
+				},
+				PeriodSeconds: to.Int32Ptr(10),
+			},
 		},
 	}
 
@@ -113,10 +124,51 @@ func TestContainerGroupToContainer(t *testing.T) {
 			MemoryReservation: gbToBytes(0.1),
 			RestartPolicy:     "any",
 		},
+		Healthcheck: containers.Healthcheck{
+			Disable: false,
+			Test: []string{
+				"my",
+				"command",
+				"--option",
+			},
+			Interval: types.Duration(10 * time.Second),
+		},
 	}
 
 	container := ContainerGroupToContainer("myContainerID", myContainerGroup, myContainer, "eastus")
 	assert.DeepEqual(t, container, expectedContainer)
+}
+
+func TestHealthcheckTranslation(t *testing.T) {
+	test := []string{
+		"my",
+		"command",
+		"--option",
+	}
+	interval := types.Duration(10 * time.Second)
+	project := types.Project{
+		Services: []types.ServiceConfig{
+			{
+				Name:  "service1",
+				Image: "image1",
+				HealthCheck: &types.HealthCheckConfig{
+					Test:     test,
+					Interval: &interval,
+					Disable:  false,
+				},
+			},
+		},
+	}
+
+	group, err := ToContainerGroup(context.TODO(), convertCtx, project, mockStorageHelper)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, (*group.Containers)[0].ReadinessProbe.Exec.Command, to.StringSlicePtr(test))
+	assert.Equal(t, *(*group.Containers)[0].ReadinessProbe.PeriodSeconds, int32(10))
+
+	project.Services[0].HealthCheck.Disable = true
+	group, err = ToContainerGroup(context.TODO(), convertCtx, project, mockStorageHelper)
+	assert.NilError(t, err)
+	assert.Assert(t, (*group.Containers)[0].ReadinessProbe == nil)
 }
 
 func TestContainerGroupToServiceStatus(t *testing.T) {
